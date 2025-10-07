@@ -1,0 +1,41 @@
+from flask_restful import Resource, reqparse, fields, marshal_with,abort
+from .models import UrlModel
+from . import db
+from .utils import create_shortcode
+
+user_args = reqparse.RequestParser()
+user_args.add_argument('full_url', type=str, required=True, help="full url cannot be blank")
+
+urlFields = {
+    'id' : fields.Integer,
+    'full_url' : fields.String,
+    'short_code' : fields.String,
+}
+
+class Urls(Resource):
+    @marshal_with(urlFields)
+    def get(self, short_code=None):
+        if short_code is not None:
+            url = UrlModel.query.filter_by(short_code=short_code).first()
+            if not url or not url.full_url or url.full_url.strip() == "":
+                abort(404, message= "The requested URL could not be found")
+            return url
+        else:
+            urls = UrlModel.query.all()
+            return urls
+    
+    @marshal_with(urlFields)
+    def post(self):
+        #create new url entry with the full url and unique id -> generate id from id
+        args = user_args.parse_args()
+        url = UrlModel(full_url=args["full_url"])
+        db.session.add(url)
+        db.session.flush() #do not save until we are done
+
+        #come up with the shortened url and assign to database
+        url.short_code = create_shortcode(int(url.id))
+        db.session.commit()
+
+        return url, 201
+    
+    
