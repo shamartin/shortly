@@ -1,3 +1,9 @@
+def test_environment_config(app):
+    #make sure we are not touching the actual database and that nothing broke
+    with app.app_context():
+        assert app.config["TESTING"] is True
+        assert "sqlite:///:memory:" in app.config["SQLALCHEMY_DATABASE_URI"]
+
 def test_post_add_entry(client):
     response = client.post('/api/urls/', json={'full_url': 'https://www.totallyrealwebsite.com'})
     assert response.status_code == 201
@@ -5,10 +11,18 @@ def test_post_add_entry(client):
     assert data['short_code'] is not None
     assert data['full_url'] == 'https://www.totallyrealwebsite.com'
 
-#TODO: functionality needs to be added for this edge case
-#def test_post_add_duplicate_entry(client):
+def test_post_add_duplicate_entry(client):
+    #post URL once
+    client.post('/api/urls/', json={'full_url': 'https://www.totallyrealwebsite.com'})
+    #post it again!
+    response = client.post('/api/urls/', json={'full_url': 'https://www.totallyrealwebsite.com'})
+
+    assert response.status_code == 409
+    data = response.get_json()
+    assert data == {"message": "The requested URL has already beeen shortened. Please use this URL: http://www.shortly.com/api/urls/1"}
 
 def test_get_all_entries(client, app):
+    #/api/urls with no id specified
     from shortly.models import UrlModel
     from shortly import db
 
@@ -27,8 +41,8 @@ def test_get_all_entries(client, app):
     assert data == [{'full_url' : 'https://www.foo.com', 'id': 1, 'short_code':'ABC'},
                     {'full_url' : 'https://www.bar.com', 'id': 2, 'short_code':'DEF'}]
 
-
 def test_get_one_entry(client, app):
+    #api/urls/<id>
     from shortly.models import UrlModel
     from shortly import db
 
@@ -44,7 +58,6 @@ def test_get_one_entry(client, app):
     data = response.get_json()
 
     assert data == {'full_url' : 'https://www.bar.com', 'id': 2, 'short_code':'DEF'}
-
 
 def test_get_one_entry_fail(client, app):
     #entry does not exist case

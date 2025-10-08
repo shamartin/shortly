@@ -2,6 +2,7 @@ from flask_restful import Resource, reqparse, fields, marshal_with,abort
 from .models import UrlModel
 from . import db
 from .utils import create_shortcode
+from flask import current_app
 
 user_args = reqparse.RequestParser()
 user_args.add_argument('full_url', type=str, required=True, help="full url cannot be blank")
@@ -26,16 +27,18 @@ class Urls(Resource):
     
     @marshal_with(urlFields)
     def post(self):
-        #create new url entry with the full url and unique id -> generate id from id
         args = user_args.parse_args()
         url = UrlModel(full_url=args["full_url"])
-        db.session.add(url)
-        db.session.flush() #do not save until we are done
+        #check for duplicates
+        duplicate_url = UrlModel.query.filter_by(full_url=args["full_url"]).first()
+        if duplicate_url:
+            abort(409, message= f"The requested URL has already beeen shortened. Please use this URL: {current_app.config['BASE_URL']}/api/urls/{duplicate_url.short_code}")
+        else:
+             #create new url entry with the full url and id -> generate shortcode from id = prevent collisions
+            db.session.add(url)
+            db.session.flush() #do not save until we are done
+            #come up with the shortened url and assign to database
+            url.short_code = create_shortcode(int(url.id))
+            db.session.commit()
 
-        #come up with the shortened url and assign to database
-        url.short_code = create_shortcode(int(url.id))
-        db.session.commit()
-
-        return url, 201
-    
-    
+            return url, 201
