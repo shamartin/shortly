@@ -1,9 +1,11 @@
+import os
 import pytest 
 from shortly import create_app, db
 
 @pytest.fixture
 def app():
-    app = create_app(testing=True)
+    os.environ["ENVIRONMENT"] = "testing"
+    app = create_app()
     with app.app_context():
         db.create_all()
         yield app
