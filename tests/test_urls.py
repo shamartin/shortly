@@ -19,7 +19,7 @@ def test_post_add_duplicate_entry(client):
 
     assert response.status_code == 409
     data = response.get_json()
-    assert data == {"message": "The requested URL has already beeen shortened. Please use this URL: http://www.shortly.com/api/urls/1"}
+    assert data == {"message": "The requested URL has already beeen shortened. Please use this URL: http://www.shortly.com/1"}
 
 def test_get_all_entries(client, app):
     #/api/urls with no id specified
@@ -59,18 +59,8 @@ def test_get_one_entry(client, app):
 
     assert data == {'full_url' : 'https://www.bar.com', 'id': 2, 'short_code':'DEF'}
 
-def test_get_one_entry_fail(client, app):
+def test_get_one_entry_fail(client):
     #entry does not exist case
-    from shortly.models import UrlModel
-    from shortly import db
-
-    url1 = UrlModel(full_url='https://www.foo.com', short_code='ABC')
-    url2 = UrlModel(full_url='https://www.bar.com', short_code='DEF')
-
-    with app.app_context():
-        db.session.add_all([url1, url2])
-        db.session.commit()
-
     response = client.get('/api/urls/123')#db is empty-- we are searching for something that does not exist
 
     assert response.status_code == 404
@@ -78,3 +68,23 @@ def test_get_one_entry_fail(client, app):
 
     assert data == {"message": "The requested URL could not be found"}
 
+def test_search_and_redirect(client, app):
+    from shortly.models import UrlModel
+    from shortly import db
+    url = UrlModel(full_url='https://www.foo.com', short_code='ABC')
+
+    with app.app_context():
+        db.session.add(url)
+        db.session.commit()
+
+    response = client.get('/ABC', follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "https://www.foo.com"
+
+def test_search_and_redirect_fail(client):
+    response = client.get('/DEF', follow_redirects=False) # this does not exist in DB
+
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data == {"message": "The requested URL could not be found"}
