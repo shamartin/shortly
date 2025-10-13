@@ -29,7 +29,8 @@ class Urls(Resource):
     def post(self):
         args = user_args.parse_args()
 
-        #validate
+        #validate 
+        #TODO: create helper function with stricter validation to ensure no one blows up the db
         full_url = args["full_url"].strip()
         if not full_url.startswith(("http://", "https://")):
             full_url = "https://" + full_url
