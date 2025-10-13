@@ -1,8 +1,9 @@
-from dotenv import load_dotenv
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_restful import Api
 import os
+from dotenv import load_dotenv
+from flask import Flask, redirect, jsonify
+from flask_restful import Api
+from flask_sqlalchemy import SQLAlchemy
+
 
 db = SQLAlchemy()
 
@@ -39,4 +40,13 @@ def create_app():
     def home():
         return ({"status" : "OK", "service" : "Shortly URL Shortener"})
     
+    @app.route('/<string:short_code>')
+    def search_and_redirect(short_code):
+        url = UrlModel.query.filter_by(short_code=short_code).first()
+
+        if not url or not url.full_url or url.full_url.strip() == "":
+            return jsonify({"message": "The requested URL could not be found"}), 404
+        return redirect(url.full_url)
+    
     return app
+

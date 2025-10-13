@@ -32,7 +32,7 @@ class Urls(Resource):
         #check for duplicates
         duplicate_url = UrlModel.query.filter_by(full_url=args["full_url"]).first()
         if duplicate_url:
-            abort(409, message= f"The requested URL has already beeen shortened. Please use this URL: {current_app.config['BASE_URL']}/api/urls/{duplicate_url.short_code}")
+            abort(409, message= f"The requested URL has already beeen shortened. Please use this URL: {current_app.config['BASE_URL']}/{duplicate_url.short_code}")
         else:
              #create new url entry with the full url and id -> generate shortcode from id = prevent collisions
             db.session.add(url)
