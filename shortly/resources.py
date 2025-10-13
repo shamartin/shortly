@@ -28,13 +28,19 @@ class Urls(Resource):
     @marshal_with(urlFields)
     def post(self):
         args = user_args.parse_args()
-        url = UrlModel(full_url=args["full_url"])
+
+        #validate
+        full_url = args["full_url"].strip()
+        if not full_url.startswith(("http://", "https://")):
+            full_url = "https://" + full_url
+
         #check for duplicates
-        duplicate_url = UrlModel.query.filter_by(full_url=args["full_url"]).first()
+        duplicate_url = UrlModel.query.filter_by(full_url=full_url).first()
         if duplicate_url:
             abort(409, message= f"The requested URL has already beeen shortened. Please use this URL: {current_app.config['BASE_URL']}/{duplicate_url.short_code}")
         else:
-             #create new url entry with the full url and id -> generate shortcode from id = prevent collisions
+            url = UrlModel(full_url=full_url)
+            #create new url entry with the full url and id -> generate shortcode from id 
             db.session.add(url)
             db.session.flush() #do not save until we are done
             #come up with the shortened url and assign to database
