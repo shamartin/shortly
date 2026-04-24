@@ -1,4 +1,5 @@
 # Shortly - URL Shortener Service
+![CI](https://github.com/shamartin/shortly/actions/workflows/tests.yml/badge.svg)
 
 A simple URL shortener web service built with Python and Flask. It takes a long URL and returns a shortened link that redirects users to the original URL.
 
